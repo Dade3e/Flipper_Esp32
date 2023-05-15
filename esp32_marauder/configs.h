@@ -17,7 +17,7 @@
   //#define ESP32_LDDB
   //#define MARAUDER_DEV_BOARD_PRO
 
-  #define MARAUDER_VERSION "v0.10.3"
+  #define MARAUDER_VERSION "v0.10.4"
 
   //// BUTTON DEFINITIONS
   #ifdef MARAUDER_MINI
