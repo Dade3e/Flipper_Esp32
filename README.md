@@ -1,5 +1,8 @@
-Original code
+Original Marauder code
 https://github.com/justcallmekoko/ESP32Marauder/releases/tag/v0.10.4
+
+Original Deauth code
+https://github.com/SpacehuhnTech/esp8266_deauther/releases/tag/2.6.1
 
 Hi,
 I use ***Esp-wroom-32***, and to save pcap on flipper zero sd:
