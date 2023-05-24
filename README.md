@@ -1,6 +1,5 @@
 Hi,
-I use ***Esp-wroom-32***,
-i had the same problem and i solved it:
+I use ***Esp-wroom-32***, and to save pcap on flipper zero sd:
 - Software:
   - Update Arduino ide for recompile marauder esp32 firmware: Arduino Ide Version: 2.1.0;
   - And I configure it with this guide: https://github.com/justcallmekoko/ESP32Marauder/wiki/arduino-ide-setup ;
