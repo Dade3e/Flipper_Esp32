@@ -35,3 +35,6 @@ I use ***Esp-wroom-32***, and to save pcap on flipper zero sd:
      - GND Esp32 pin to GND Flipper zero pin
 
 I think this is all :/
+
+![Settings arduino ide](settings_ide.png)
+
