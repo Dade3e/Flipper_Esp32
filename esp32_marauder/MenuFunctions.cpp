@@ -17,7 +17,7 @@ MenuFunctions::MenuFunctions()
 // LVGL Stuff
 /* Interrupt driven periodic handler */
 
-#ifndef MARAUDER_MINI
+#ifdef HAS_ILI9341
   void MenuFunctions::lv_tick_handler()
   {
     lv_tick_inc(LVGL_TICK_PERIOD);
@@ -860,7 +860,7 @@ void MenuFunctions::main(uint32_t currentTime)
       this->orientDisplay();
       wifi_scan_obj.orient_display = false;
     }
-    #ifndef MARAUDER_MINI
+    #ifdef HAS_ILI9341
       if ((wifi_scan_obj.currentScanMode != LV_JOIN_WIFI) &&
           (wifi_scan_obj.currentScanMode != LV_ADD_SSID))
         display_obj.updateBanner(current_menu->name);
@@ -873,7 +873,7 @@ void MenuFunctions::main(uint32_t currentTime)
       if ((wifi_scan_obj.currentScanMode != LV_JOIN_WIFI) &&
           (wifi_scan_obj.currentScanMode != LV_ADD_SSID))
         this->updateStatusBar();
-        #ifdef MARAUDER_MINI
+        #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
           display_obj.updateBanner(current_menu->name);
         #endif
     }
@@ -901,13 +901,13 @@ void MenuFunctions::main(uint32_t currentTime)
   int pre_getTouch = millis();
 
   // getTouch causes a 10ms delay which makes beacon spam less effective
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     pressed = display_obj.tft.getTouch(&t_x, &t_y);
   #endif
 
 
   // This is if there are scans/attacks going on
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     if ((wifi_scan_obj.currentScanMode != WIFI_SCAN_OFF) &&
         (pressed) &&
         (wifi_scan_obj.currentScanMode != OTA_UPDATE) &&
@@ -919,6 +919,7 @@ void MenuFunctions::main(uint32_t currentTime)
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_RAW_CAPTURE) ||
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_STATION) ||
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_AP) ||
+          (wifi_scan_obj.currentScanMode == WIFI_SCAN_SIG_STREN) ||
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_TARGET_AP) ||
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_TARGET_AP_FULL) ||
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_PWN) ||
@@ -953,7 +954,7 @@ void MenuFunctions::main(uint32_t currentTime)
     }
   #endif
 
-  #ifdef MARAUDER_MINI
+  #ifdef HAS_BUTTONS
 
     bool c_btn_press = c_btn.justPressed();
     
@@ -968,6 +969,7 @@ void MenuFunctions::main(uint32_t currentTime)
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_RAW_CAPTURE) ||
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_STATION) ||
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_AP) ||
+          (wifi_scan_obj.currentScanMode == WIFI_SCAN_SIG_STREN) ||
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_TARGET_AP) ||
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_TARGET_AP_FULL) ||
           (wifi_scan_obj.currentScanMode == WIFI_SCAN_PWN) ||
@@ -1010,7 +1012,7 @@ void MenuFunctions::main(uint32_t currentTime)
 
   // Check if any key coordinate boxes contain the touch coordinates
   // This is for when on a menu
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     if ((wifi_scan_obj.currentScanMode != WIFI_ATTACK_BEACON_SPAM) &&
         (wifi_scan_obj.currentScanMode != WIFI_ATTACK_AP_SPAM) &&
         (wifi_scan_obj.currentScanMode != WIFI_ATTACK_AUTH) &&
@@ -1070,23 +1072,25 @@ void MenuFunctions::main(uint32_t currentTime)
     y = -1;
   #endif
 
-  #ifdef MARAUDER_MINI
-    if (u_btn.justPressed()){
-      if ((wifi_scan_obj.currentScanMode == WIFI_SCAN_OFF) ||
-          (wifi_scan_obj.currentScanMode == OTA_UPDATE)) {
-        if (current_menu->selected > 0) {
-          current_menu->selected--;
-          this->buttonSelected(current_menu->selected);
-          if (!current_menu->list->get(current_menu->selected + 1).selected)
-            this->buttonNotSelected(current_menu->selected + 1);
+  #ifdef HAS_BUTTONS
+    #ifndef MARAUDER_M5STICKC
+      if (u_btn.justPressed()){
+        if ((wifi_scan_obj.currentScanMode == WIFI_SCAN_OFF) ||
+            (wifi_scan_obj.currentScanMode == OTA_UPDATE)) {
+          if (current_menu->selected > 0) {
+            current_menu->selected--;
+            this->buttonSelected(current_menu->selected);
+            if (!current_menu->list->get(current_menu->selected + 1).selected)
+              this->buttonNotSelected(current_menu->selected + 1);
+          }
+        }
+        else if ((wifi_scan_obj.currentScanMode == WIFI_PACKET_MONITOR) ||
+                (wifi_scan_obj.currentScanMode == WIFI_SCAN_EAPOL)) {
+          if (wifi_scan_obj.set_channel < 14)
+            wifi_scan_obj.changeChannel(wifi_scan_obj.set_channel + 1);
         }
       }
-      else if ((wifi_scan_obj.currentScanMode == WIFI_PACKET_MONITOR) ||
-               (wifi_scan_obj.currentScanMode == WIFI_SCAN_EAPOL)) {
-        if (wifi_scan_obj.set_channel < 14)
-          wifi_scan_obj.changeChannel(wifi_scan_obj.set_channel + 1);
-      }
-    }
+    #endif
     if (d_btn.justPressed()){
       if ((wifi_scan_obj.currentScanMode == WIFI_SCAN_OFF) ||
           (wifi_scan_obj.currentScanMode == OTA_UPDATE)) {
@@ -1095,6 +1099,12 @@ void MenuFunctions::main(uint32_t currentTime)
           this->buttonSelected(current_menu->selected);
           if (!current_menu->list->get(current_menu->selected - 1).selected)
             this->buttonNotSelected(current_menu->selected - 1);
+        }
+        else {
+          current_menu->selected = 0;
+          this->buttonSelected(current_menu->selected);
+          if (!current_menu->list->get(current_menu->list->size() - 1).selected)
+            this->buttonNotSelected(current_menu->list->size() - 1);
         }
       }
       else if ((wifi_scan_obj.currentScanMode == WIFI_PACKET_MONITOR) ||
@@ -1214,7 +1224,7 @@ void MenuFunctions::updateStatusBar()
 {
   display_obj.tft.setTextSize(1);
   
-  #ifdef MARAUDER_MINI
+  #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
     display_obj.tft.setFreeFont(NULL);
   #endif
   
@@ -1236,11 +1246,11 @@ void MenuFunctions::updateStatusBar()
   if (temp_obj.current_temp != temp_obj.old_temp) {
     temp_obj.old_temp = temp_obj.current_temp;
     display_obj.tft.fillRect(0, 0, 50, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
-    #ifndef MARAUDER_MINI
+    #ifdef HAS_ILI9341
       display_obj.tft.drawString((String)temp_obj.current_temp + " C", 4, 0, 2);
     #endif
 
-    #ifdef MARAUDER_MINI
+    #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
       display_obj.tft.drawString((String)temp_obj.current_temp + " C", 0, 0, 1);
     #endif
   }
@@ -1250,11 +1260,11 @@ void MenuFunctions::updateStatusBar()
   if (wifi_scan_obj.set_channel != wifi_scan_obj.old_channel) {
     wifi_scan_obj.old_channel = wifi_scan_obj.set_channel;
     display_obj.tft.fillRect(50, 0, 50, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
-    #ifndef MARAUDER_MINI
+    #ifdef HAS_ILI9341
       display_obj.tft.drawString("CH: " + (String)wifi_scan_obj.set_channel, 50, 0, 2);
     #endif
 
-    #ifdef MARAUDER_MINI
+    #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
       display_obj.tft.drawString("CH: " + (String)wifi_scan_obj.set_channel, TFT_WIDTH/4, 0, 1);
     #endif
   }
@@ -1264,11 +1274,11 @@ void MenuFunctions::updateStatusBar()
   if (wifi_scan_obj.free_ram != wifi_scan_obj.old_free_ram) {
     wifi_scan_obj.old_free_ram = wifi_scan_obj.free_ram;
     display_obj.tft.fillRect(100, 0, 60, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
-    #ifndef MARAUDER_MINI
+    #ifdef HAS_ILI9341
       display_obj.tft.drawString((String)wifi_scan_obj.free_ram + "B", 100, 0, 2);
     #endif
 
-    #ifdef MARAUDER_MINI
+    #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
       display_obj.tft.drawString((String)wifi_scan_obj.free_ram + "B", TFT_WIDTH/1.75, 0, 1);
     #endif
   }
@@ -1286,7 +1296,7 @@ void MenuFunctions::updateStatusBar()
     the_color = TFT_RED;
   #endif
 
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     display_obj.tft.drawXBitmap(170,
                                 0,
                                 menu_icons[STATUS_SD],
@@ -1296,7 +1306,7 @@ void MenuFunctions::updateStatusBar()
                                 the_color);
   #endif
 
-  #ifdef MARAUDER_MINI
+  #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
     display_obj.tft.setTextColor(the_color, STATUSBAR_COLOR);
     display_obj.tft.drawString("SD", TFT_WIDTH - 12, 0, 1);
   #endif
@@ -1305,7 +1315,7 @@ void MenuFunctions::updateStatusBar()
 void MenuFunctions::drawStatusBar()
 {
   display_obj.tft.setTextSize(1);
-  #ifdef MARAUDER_MINI
+  #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
     display_obj.tft.setFreeFont(NULL);
   #endif
   display_obj.tft.fillRect(0, 0, 240, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
@@ -1330,11 +1340,11 @@ void MenuFunctions::drawStatusBar()
   display_obj.tft.setTextColor(the_color, STATUSBAR_COLOR);
   temp_obj.old_temp = temp_obj.current_temp;
   display_obj.tft.fillRect(0, 0, 50, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     display_obj.tft.drawString((String)temp_obj.current_temp + " C", 4, 0, 2);
   #endif
 
-  #ifdef MARAUDER_MINI
+  #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
     display_obj.tft.drawString((String)temp_obj.current_temp + " C", 0, 0, 1);
   #endif
   display_obj.tft.setTextColor(TFT_WHITE, STATUSBAR_COLOR);
@@ -1343,11 +1353,11 @@ void MenuFunctions::drawStatusBar()
   // WiFi Channel Stuff
   wifi_scan_obj.old_channel = wifi_scan_obj.set_channel;
   display_obj.tft.fillRect(50, 0, 50, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     display_obj.tft.drawString("CH: " + (String)wifi_scan_obj.set_channel, 50, 0, 2);
   #endif
 
-  #ifdef MARAUDER_MINI
+  #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
     display_obj.tft.drawString("CH: " + (String)wifi_scan_obj.set_channel, TFT_WIDTH/4, 0, 1);
   #endif
 
@@ -1355,11 +1365,11 @@ void MenuFunctions::drawStatusBar()
   wifi_scan_obj.freeRAM();
   wifi_scan_obj.old_free_ram = wifi_scan_obj.free_ram;
   display_obj.tft.fillRect(100, 0, 60, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     display_obj.tft.drawString((String)wifi_scan_obj.free_ram + "B", 100, 0, 2);
   #endif
 
-  #ifdef MARAUDER_MINI
+  #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
     display_obj.tft.drawString((String)wifi_scan_obj.free_ram + "B", TFT_WIDTH/1.75, 0, 1);
   #endif
 
@@ -1376,7 +1386,7 @@ void MenuFunctions::drawStatusBar()
     the_color = TFT_RED;
   #endif
 
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     display_obj.tft.drawXBitmap(170,
                                 0,
                                 menu_icons[STATUS_SD],
@@ -1386,7 +1396,7 @@ void MenuFunctions::drawStatusBar()
                                 the_color);
   #endif
 
-  #ifdef MARAUDER_MINI
+  #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
     display_obj.tft.setTextColor(the_color, STATUSBAR_COLOR);
     display_obj.tft.drawString("SD", TFT_WIDTH - 12, 0, 1);
   #endif
@@ -1400,7 +1410,7 @@ void MenuFunctions::orientDisplay()
 
   display_obj.tft.setCursor(0, 0);
 
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     #ifdef TFT_SHIELD
       uint16_t calData[5] = { 275, 3494, 361, 3528, 4 }; // tft.setRotation(0); // Portrait with TFT Shield
       //Serial.println("Using TFT Shield");
@@ -1467,7 +1477,7 @@ void MenuFunctions::RunSetup()
 {
   extern LinkedList<AccessPoint>* access_points;
   
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     this->initLVGL();
   #endif
    
@@ -1596,7 +1606,7 @@ void MenuFunctions::RunSetup()
     this->drawStatusBar();
     wifi_scan_obj.StartScan(WIFI_SCAN_DEAUTH, TFT_RED);
   });
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     addNodes(&wifiSnifferMenu, text_table1[46], TFT_VIOLET, NULL, EAPOL, [this]() {
       wifi_scan_obj.StartScan(WIFI_SCAN_EAPOL, TFT_VIOLET);
     });
@@ -1640,6 +1650,13 @@ void MenuFunctions::RunSetup()
     this->drawStatusBar();
     wifi_scan_obj.StartScan(WIFI_SCAN_STATION, TFT_WHITE);
   });
+  #ifdef HAS_ILI9341
+    addNodes(&wifiSnifferMenu, "Signal Monitor", TFT_CYAN, NULL, PACKET_MONITOR, [this]() {
+      display_obj.clearScreen();
+      this->drawStatusBar();
+      wifi_scan_obj.StartScan(WIFI_SCAN_SIG_STREN, TFT_CYAN);
+    });
+  #endif
 
   // Build WiFi attack menu
   wifiAttackMenu.parentMenu = &wifiMenu; // Main Menu is second menu parent
@@ -1692,7 +1709,7 @@ void MenuFunctions::RunSetup()
   addNodes(&wifiGeneralMenu, text09, TFT_LIGHTGREY, NULL, 0, [this]() {
     changeMenu(wifiGeneralMenu.parentMenu);
   });
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     addNodes(&wifiGeneralMenu, text_table1[55], TFT_DARKCYAN, NULL, JOIN_WIFI, [this](){
       display_obj.clearScreen(); 
       wifi_scan_obj.currentScanMode = LV_JOIN_WIFI; 
@@ -1708,7 +1725,7 @@ void MenuFunctions::RunSetup()
     changeMenu(&generateSSIDsMenu);
     wifi_scan_obj.RunGenerateSSIDs();
   });
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     addNodes(&wifiGeneralMenu, text_table1[1], TFT_NAVY, NULL, KEYBOARD_ICO, [this](){
       display_obj.clearScreen(); 
       //wifi_scan_obj.currentScanMode = LV_ADD_SSID; 
@@ -1728,7 +1745,7 @@ void MenuFunctions::RunSetup()
     changeMenu(&clearAPsMenu);
     wifi_scan_obj.RunClearStations();
   });
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     // Select APs on OG
     addNodes(&wifiGeneralMenu, text_table1[56], TFT_NAVY, NULL, KEYBOARD_ICO, [this](){
       display_obj.clearScreen(); 
@@ -1869,7 +1886,7 @@ void MenuFunctions::RunSetup()
   addNodes(&badusbMenu, text_table1[36], TFT_PURPLE, NULL, TEST_BAD_USB_ICO, [this]() {
     a32u4_obj.test();
   });
-  #ifndef MARAUDER_MINI
+  #ifdef HAS_ILI9341
     addNodes(&badusbMenu, text_table1[37], TFT_RED, NULL, BAD_USB_ICO, [this](){
       display_obj.clearScreen(); 
       wifi_scan_obj.currentScanMode = LV_ADD_SSID; 
@@ -2096,17 +2113,17 @@ void MenuFunctions::displayCurrentMenu()
 
   if (current_menu->list != NULL)
   {
-    #ifndef MARAUDER_MINI
+    #ifdef HAS_ILI9341
       display_obj.tft.setFreeFont(MENU_FONT);
     #endif
 
-    #ifdef MARAUDER_MINI
+    #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
       display_obj.tft.setFreeFont(NULL);
       display_obj.tft.setTextSize(1);
     #endif
     for (uint8_t i = 0; i < current_menu->list->size(); i++)
     {
-      #ifndef MARAUDER_MINI
+      #ifdef HAS_ILI9341
         if (!current_menu->list->get(i).selected)
           display_obj.key[i].drawButton(false, current_menu->list->get(i).name);
         else
@@ -2123,7 +2140,7 @@ void MenuFunctions::displayCurrentMenu()
 
       #endif
 
-      #ifdef MARAUDER_MINI
+      #if defined(MARAUDER_MINI) || defined(MARAUDER_M5STICKC)
         if ((current_menu->selected == i) || (current_menu->list->get(i).selected))
           display_obj.key[i].drawButton(true, current_menu->list->get(i).name);
         else 

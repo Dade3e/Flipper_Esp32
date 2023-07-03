@@ -213,8 +213,11 @@ void CommandLine::runCommand(String input) {
     Serial.println(HELP_CLEARAP_CMD_A);
     Serial.println(HELP_REBOOT_CMD);
     Serial.println(HELP_UPDATE_CMD_A);
+    Serial.println(HELP_LS_CMD);
+    Serial.println(HELP_LED_CMD);
     
     // WiFi sniff/scan
+    Serial.println(HELP_SIGSTREN_CMD);
     Serial.println(HELP_SCANAP_CMD);
     Serial.println(HELP_SCANSTA_CMD);
     Serial.println(HELP_SNIFF_RAW_CMD);
@@ -266,6 +269,34 @@ void CommandLine::runCommand(String input) {
       display_obj.tft.init();
       menu_function_obj.changeMenu(menu_function_obj.current_menu);
     #endif
+  }
+  // LED command
+  else if (cmd_args.get(0) == LED_CMD) {
+    int hex_arg = this->argSearch(&cmd_args, "-s");
+    int pat_arg = this->argSearch(&cmd_args, "-p");
+    #ifdef PIN
+      if (hex_arg != 0) {
+        String hexstring = cmd_args.get(hex_arg + 1);
+        int number = (int)strtol(&hexstring[1], NULL, 16);
+        int r = number >> 16;
+        int g = number >> 8 & 0xFF;
+        int b = number & 0xFF;
+        //Serial.println(r);
+        //Serial.println(g);
+        //Serial.println(b);
+        led_obj.setColor(r, g, b);
+        led_obj.setMode(MODE_CUSTOM);
+      }
+    #else
+      Serial.println("This hardware does not support neopixel")
+    #endif
+  }
+  // ls command
+  else if (cmd_args.get(0) == LS_CMD) {
+    if (cmd_args.size() > 1)
+      sd_obj.listDir(cmd_args.get(1));
+    else
+      Serial.println("You did not provide a dir to list");
   }
   // Channel command
   else if (cmd_args.get(0) == CH_CMD) {
@@ -349,9 +380,17 @@ void CommandLine::runCommand(String input) {
 
   //// WiFi/Bluetooth Scan/Attack commands
   if (!wifi_scan_obj.scanning()) {
-
+    // Signal strength scan
+    if (cmd_args.get(0) == SIGSTREN_CMD) {
+      Serial.println("Starting Signal Strength Scan. Stop with " + (String)STOPSCAN_CMD);
+      #ifdef HAS_SCREEN
+        display_obj.clearScreen();
+        menu_function_obj.drawStatusBar();
+      #endif
+      wifi_scan_obj.StartScan(WIFI_SCAN_SIG_STREN, TFT_MAGENTA);
+    }
     // AP Scan
-    if (cmd_args.get(0) == SCANAP_CMD) {
+    else if (cmd_args.get(0) == SCANAP_CMD) {
       int full_sw = -1;
       #ifdef HAS_SCREEN
         display_obj.clearScreen();
