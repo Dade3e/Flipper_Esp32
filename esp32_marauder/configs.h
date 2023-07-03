@@ -6,7 +6,7 @@
 
   //Indicates that it must redirect the stream with the captured packets to serial (1)
   //If not defined, will write packages to SD card if supported
-  #define WRITE_PACKETS_SERIAL
+  //#define WRITE_PACKETS_SERIAL
   
   //#define MARAUDER_M5STICKC
   //#define MARAUDER_MINI
